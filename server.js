@@ -11,19 +11,20 @@ const path = require('path');
 const cparser = require('cookie-parser');
 const crypto = require('crypto');
 const routes = require('./routes');
-var pemKey = false;
+const cors = require('cors');
 
 //enable POST request
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(cparser());
+app.use(cors());
 
 let accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
 app.use(morgan('combined', { stream: accessLogStream })); // log every request to the console
 app.use(morgan('dev'));
 app.use(
     (req, res, next) => {
-        if (!pemKey)
+        if (!config.pemKey())
             res.status(500).json({message: 'Server not ready. Please try again after few seconds'});
         else
             next();
@@ -31,14 +32,4 @@ app.use(
 );
 
 app.use('/', routes);
-
-fs.readFile(config.privateKeyFile, (err, data) => {
-    if (err) {
-        console.log('Unable to load pem file')
-        process.exit(1);
-    }
-    pemKey = new NodeRSA(data);
-    app.listen(port, () => console.log(`Trusted Organization app listening on port ${port}!`));
-});
-
-
+app.listen(port, () => console.log(`Trusted Organization app listening on port ${port}!`));
